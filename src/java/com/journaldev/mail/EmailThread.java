@@ -2,6 +2,8 @@ package com.journaldev.mail;
 
 import java.util.Properties;
 import java.util.ResourceBundle;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.mail.Authenticator;
 import javax.mail.Message;
 import javax.mail.Multipart;
@@ -23,11 +25,14 @@ public class EmailThread extends Thread{
     private Properties properties = new Properties();
     private static ResourceBundle configFile=ResourceBundle.getBundle("com.journaldev.mail.confEmail");
     private Session sesion;
+    private String receptor;
+    private String asunto;
+    private String mensaje;
     
     public EmailThread(String receptor,String asunto, String mensaje) throws MontajeMailException, EnviarMailException{
-        rellenarPropiedades();
-        verificarSesion();
-        prepararMensaje(receptor,asunto,mensaje);
+        this.receptor=receptor;
+        this.asunto=asunto;
+        this.mensaje=mensaje;
         
     }
     /**
@@ -35,6 +40,15 @@ public class EmailThread extends Thread{
      * This method is the start of thread execution.
      */
     public void run(){
+        rellenarPropiedades();
+        verificarSesion();
+            try {
+            prepararMensaje(receptor,asunto,mensaje);
+        } catch (MontajeMailException ex) {
+            Logger.getLogger(EmailThread.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (EnviarMailException ex) {
+            Logger.getLogger(EmailThread.class.getName()).log(Level.SEVERE, null, ex);
+        }
         
     }
     
@@ -48,8 +62,16 @@ public class EmailThread extends Thread{
         properties.put("mail.smtp.port", port);
         properties.put("mail.smtp.ssl.trust", host);
         properties.put("mail.imap.partialfetch", false);
-        properties.put("mail.smtp.ssl.enable", "false");
-        properties.put("mail.smtp.auth", "true");
+        
+        /*
+        //properties.put("mail.smtp.ssl.enable", "false");
+       // properties.put("mail.smtp.ssl.enable", "false");
+       // properties.put("mail.smtp.auth", "true");
+       properties.put("imap.mail.com", 993);
+       properties.put("mail.smtp.ssl.trust", host);
+       properties.put("mail.imap.partialfetch", false);
+       properties.
+*/
         
     }
     

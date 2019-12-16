@@ -17,6 +17,7 @@ import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
 import javax.mail.Authenticator;
 import javax.mail.Message;
+import javax.mail.MessagingException;
 import javax.mail.Multipart;
 import javax.mail.PasswordAuthentication;
 import javax.mail.Session;
@@ -124,7 +125,7 @@ public class EmailThread extends Thread{
         }
         try{
             Transport.send(message);
-        }catch(Exception e){
+        }catch(MessagingException e){
             throw new EnviarMailException(e.getMessage());
         }
     }

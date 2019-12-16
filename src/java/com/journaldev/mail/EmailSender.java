@@ -26,7 +26,7 @@ public class EmailSender {
      * @param args
      */
     public static void main(String[] args) {
-        String cifrarTexto = cifrarTexto("percy","equipo4@myself.com");
+        String cifrarTexto = cifrarTexto("percy","equipo4@dr.com");
         System.out.println(descifrarTexto("percy"));
        
     }

@@ -1,9 +1,20 @@
 package com.journaldev.mail;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.security.spec.KeySpec;
+import java.util.Arrays;
 import java.util.Properties;
 import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.crypto.Cipher;
+import javax.crypto.SecretKey;
+import javax.crypto.SecretKeyFactory;
+import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.PBEKeySpec;
+import javax.crypto.spec.SecretKeySpec;
 import javax.mail.Authenticator;
 import javax.mail.Message;
 import javax.mail.Multipart;
@@ -22,12 +33,15 @@ import javax.mail.internet.MimeMultipart;
  * @author Ricardo Peinado Lastra
  */
 public class EmailThread extends Thread{
+    private static byte[] salt = "2dam2curiousR2A4".getBytes();
+    private static final String clave="percy";
     private Properties properties = new Properties();
     private static ResourceBundle configFile=ResourceBundle.getBundle("com.journaldev.mail.confEmail");
     private Session sesion;
     private String receptor;
     private String asunto;
     private String mensaje;
+    private String address=descifrarTexto(clave);
     
     public EmailThread(String receptor,String asunto, String mensaje) throws MontajeMailException, EnviarMailException{
         this.receptor=receptor;
@@ -40,9 +54,10 @@ public class EmailThread extends Thread{
      * This method is the start of thread execution.
      */
     public void run(){
+        System.out.println(address);
         rellenarPropiedades();
         verificarSesion();
-            try {
+        try {
             prepararMensaje(receptor,asunto,mensaje);
         } catch (MontajeMailException ex) {
             Logger.getLogger(EmailThread.class.getName()).log(Level.SEVERE, null, ex);
@@ -65,13 +80,13 @@ public class EmailThread extends Thread{
         
         /*
         //properties.put("mail.smtp.ssl.enable", "false");
-       // properties.put("mail.smtp.ssl.enable", "false");
-       // properties.put("mail.smtp.auth", "true");
-       properties.put("imap.mail.com", 993);
-       properties.put("mail.smtp.ssl.trust", host);
-       properties.put("mail.imap.partialfetch", false);
-       properties.
-*/
+        // properties.put("mail.smtp.ssl.enable", "false");
+        // properties.put("mail.smtp.auth", "true");
+        properties.put("imap.mail.com", 993);
+        properties.put("mail.smtp.ssl.trust", host);
+        properties.put("mail.imap.partialfetch", false);
+        properties.
+        */
         
     }
     
@@ -80,7 +95,8 @@ public class EmailThread extends Thread{
         Authenticator autenticacion=new Authenticator() {
             @Override
             protected PasswordAuthentication getPasswordAuthentication() {
-                return new PasswordAuthentication(configFile.getString("user"), configFile.getString("password"));
+               // return new PasswordAuthentication(configFile.getString("user"), configFile.getString("password"));
+               return new PasswordAuthentication(address, configFile.getString("password"));
             }
         };
         sesion = Session.getInstance(properties,autenticacion);
@@ -90,7 +106,8 @@ public class EmailThread extends Thread{
         Message message=null;
         try{
             message = new MimeMessage(sesion);
-            message.setFrom(new InternetAddress(configFile.getString("user")));
+            //message.setFrom(new InternetAddress(configFile.getString("user")));
+            message.setFrom(new InternetAddress(address));
             message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(receptor));
             message.setSubject(asunto);
             
@@ -111,4 +128,40 @@ public class EmailThread extends Thread{
             throw new EnviarMailException(e.getMessage());
         }
     }
+    private String descifrarTexto(String clave) {
+        String ret = null;
+        
+        // Fichero leído
+        byte[] fileContent = fileReader("F:\\Clase 2DAM\\Cosas_print\\cuentaMail.dat");
+        KeySpec keySpec = null;
+        SecretKeyFactory secretKeyFactory = null;
+        try {
+            // Creamos un SecretKey usando la clave + salt
+            keySpec = new PBEKeySpec(clave.toCharArray(), salt, 65536, 128); // AES-128
+            secretKeyFactory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA1");
+            byte[] key = secretKeyFactory.generateSecret(keySpec).getEncoded();
+            SecretKey privateKey = new SecretKeySpec(key, 0, key.length, "AES");
+            
+            // Creamos un Cipher con el algoritmos que vamos a usar
+            Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+            IvParameterSpec ivParam = new IvParameterSpec(Arrays.copyOfRange(fileContent, 0, 16)); // La IV está aquí
+            cipher.init(Cipher.DECRYPT_MODE, privateKey, ivParam);
+            byte[] decodedMessage = cipher.doFinal(Arrays.copyOfRange(fileContent, 16, fileContent.length));
+            ret = new String(decodedMessage);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return ret;
+    }
+    private byte[] fileReader(String path) {
+        byte ret[] = null;
+        File file = new File(path);
+        try {
+            ret = Files.readAllBytes(file.toPath());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return ret;
+    }
+    
 }

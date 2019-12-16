@@ -1,148 +1,125 @@
 package com.journaldev.mail;
 
-import java.util.Properties;
-import java.util.regex.Pattern;
-
-import javax.mail.Authenticator;
-import javax.mail.Message;
-import javax.mail.MessagingException;
-import javax.mail.Multipart;
-import javax.mail.PasswordAuthentication;
-import javax.mail.Session;
-import javax.mail.Transport;
-import javax.mail.internet.InternetAddress;
-import javax.mail.internet.MimeBodyPart;
-import javax.mail.internet.MimeMessage;
-import javax.mail.internet.MimeMultipart;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.security.spec.KeySpec;
+import java.util.Arrays;
+import javax.crypto.Cipher;
+import javax.crypto.SecretKey;
+import javax.crypto.SecretKeyFactory;
+import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.PBEKeySpec;
+import javax.crypto.spec.SecretKeySpec;
 
 /**
  * Builds an Email Service capable of sending normal email to a given SMTP Host.
  * Currently <b>send()</b> can only works with text.
  */
 public class EmailSender {
-
-	// Server mail user & pass
-	private String user = null;
-	private String pass = null;
-
-	// DNS Host + SMTP Port
-	private String smtp_host = null;
-	private int smtp_port = 0;
-
-	// Default DNS Host + port
-	private static final String DEFAULT_SMTP_HOST = "SMTP.GMAIL.COM";
-	private static final int DEFAULT_SMTP_PORT = 587;
-
-	/**
-	 * Disabled
-	 */
-	@SuppressWarnings("unused")
-	private EmailSender() {
-	}
-
-	/**
-	 * Builds the EmailService. If the Server DNS and/or Port are not provided,
-	 * default values will be loaded
-	 * 
-	 * @param user User account login
-	 * @param pass User account password
-	 * @param host The Server DNS
-	 * @param port The Port
-	 */
-	public EmailSender(String user, String pass, String host, String port) {
-		this.user = user;
-		this.pass = pass;
-		this.smtp_host = (host == null ? DEFAULT_SMTP_HOST : host);
-		this.smtp_port = (port == null ? DEFAULT_SMTP_PORT : new Integer(port).intValue());
-	}
-
-	/**
-	 * Sends the given <b>text</b> from the <b>sender</b> to the <b>receiver</b>. In
-	 * any case, both the <b>sender</b> and <b>receiver</b> must exist and be valid
-	 * mail addresses. <br/>
-	 * <br/>
-	 * 
-	 * Note the <b>user</b> and <b>pass</b> for the authentication is provided in
-	 * the class constructor. Ideally, the <b>sender</b> and the <b>user</b>
-	 * coincide.
-	 * 
-	 * @param sender   The mail's FROM part
-	 * @param receiver The mail's TO part
-	 * @param subject  The mail's SUBJECT
-	 * @param text     The proper MESSAGE
-	 * @throws MessagingException Is something awry happens
-	 * 
-	 */
-	public void sendMail(String sender, String receiver, String subject, String text) throws MessagingException {
-		
-		// Mail properties
-		Properties properties = new Properties();
-		properties.put("mail.smtp.auth", true);
-		properties.put("mail.smtp.starttls.enable", "true");
-		properties.put("mail.smtp.host", smtp_host);
-		properties.put("mail.smtp.port", smtp_port);
-		properties.put("mail.smtp.ssl.trust", smtp_host);
-		properties.put("mail.imap.partialfetch", false);
-                properties.put("mail.smtp.ssl.enable", "false");
-                properties.put("mail.smtp.auth", "true");
-
-		// Authenticator knows how to obtain authentication for a network connection.
-		Session session = Session.getInstance(properties, new Authenticator() {
-			@Override
-			protected PasswordAuthentication getPasswordAuthentication() {
-				return new PasswordAuthentication(user, pass);
-			}
-		});
-
-		// MIME message to be sent
-		Message message = new MimeMessage(session);
-		message.setFrom(new InternetAddress(sender)); // Ej: emisor@gmail.com
-		message.setRecipients(Message.RecipientType.TO, InternetAddress.parse(receiver)); // Ej: receptor@gmail.com
-		message.setSubject(subject); // Asunto del mensaje
-
-		// A mail can have several parts
-		Multipart multipart = new MimeMultipart();
-
-		// A message part (the message, but can be also a File, etc...)
-		MimeBodyPart mimeBodyPart = new MimeBodyPart();
-		mimeBodyPart.setContent(text, "text/html");
-		multipart.addBodyPart(mimeBodyPart);
-
-		// Adding up the parts to the MIME message
-		message.setContent(multipart);
-
-		// And here it goes...
-		Transport.send(message);
-	}
-
-	/**
-	 * True if the mail is not null and a valid email address, false otherwise.
-	 * 
-	 * @param mail The email address
-	 * @return True or False
-	 */
-	public static boolean isValid(String mail) {
-		Pattern pattern = Pattern.compile(
-				"^[a-zA-Z0-9_+&*-]+(?:\\." + "[a-zA-Z0-9_+&*-]+)*@" + "(?:[a-zA-Z0-9-]+\\.)+[a-z" + "A-Z]{2,7}$");
-		if (mail == null)
-			return false;
-		return pattern.matcher(mail).matches();
-	}
-
-	/**
-	 * Let's try the class!!
-	 * 
-	 * @param args
-	 */
-	public static void main(String[] args) {
-		
-		EmailSender emailService = new EmailSender("noreplayequipo4@gmail.com", "abcd*1234", null,null);
-		try {
-			emailService.sendMail("nobody@tartanga.eus", "nobody@tartanga.eus", "Mensaje de prueba", "Correo de vital importancia");
-			System.out.println("Ok, mail sent!");
-		} catch (MessagingException e) {
-			System.out.println("Doh!");
-			e.printStackTrace();
-		}
-	}
+    private static byte[] salt = "2dam2curiousR2A4".getBytes();
+    
+    /**
+     * Let's try the class!!
+     *
+     * @param args
+     */
+    public static void main(String[] args) {
+        String cifrarTexto = cifrarTexto("percy","equipo4@myself.com");
+        System.out.println(descifrarTexto("percy"));
+       
+    }
+    public static String cifrarTexto(String clave, String mensaje) {
+        String ret = null;
+        KeySpec keySpec = null;
+        SecretKeyFactory secretKeyFactory = null;
+        try {
+            
+            // Creamos un SecretKey usando la clave + salt
+            keySpec = new PBEKeySpec(clave.toCharArray(), salt, 65536, 128); // AES-128
+            secretKeyFactory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA1");
+            byte[] key = secretKeyFactory.generateSecret(keySpec).getEncoded();
+            SecretKey privateKey = new SecretKeySpec(key, 0, key.length, "AES");
+            
+            // Creamos un Cipher con el algoritmos que vamos a usar
+            Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+            cipher.init(Cipher.ENCRYPT_MODE, privateKey);
+            byte[] encodedMessage = cipher.doFinal(mensaje.getBytes()); // Mensaje cifrado !!!
+            byte[] iv = cipher.getIV(); // vector de inicialización por modo CBC
+            
+            // Guardamos el mensaje codificado: IV (16 bytes) + Mensaje
+            byte[] combined = concatArrays(iv, encodedMessage);
+            
+            fileWriter("F:\\Clase 2DAM\\Cosas_print\\cuentaMail.dat", combined);
+            
+            ret = new String(encodedMessage);
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return ret;
+    }
+    private static byte[] concatArrays(byte[] array1, byte[] array2) {
+        byte[] ret = new byte[array1.length + array2.length];
+        System.arraycopy(array1, 0, ret, 0, array1.length);
+        System.arraycopy(array2, 0, ret, array1.length, array2.length);
+        return ret;
+    }
+    
+    /**
+     * Escribe un fichero
+     *
+     * @param path Path del fichero
+     * @param text Texto a escibir
+     */
+    private static void fileWriter(String path, byte[] text) {
+        try (FileOutputStream fos = new FileOutputStream(path)) {
+            fos.write(text);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+    
+    /**
+     * Retorna el contenido de un fichero
+     *
+     * @param path Path del fichero
+     * @return El texto del fichero
+     */
+    private static byte[] fileReader(String path) {
+        byte ret[] = null;
+        File file = new File(path);
+        try {
+            ret = Files.readAllBytes(file.toPath());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        return ret;
+    }
+    private static String descifrarTexto(String clave) {
+        String ret = null;
+        
+        // Fichero leído
+        byte[] fileContent = fileReader("F:\\Clase 2DAM\\Cosas_print\\cuentaMail.dat");
+        KeySpec keySpec = null;
+        SecretKeyFactory secretKeyFactory = null;
+        try {
+            // Creamos un SecretKey usando la clave + salt
+            keySpec = new PBEKeySpec(clave.toCharArray(), salt, 65536, 128); // AES-128
+            secretKeyFactory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA1");
+            byte[] key = secretKeyFactory.generateSecret(keySpec).getEncoded();
+            SecretKey privateKey = new SecretKeySpec(key, 0, key.length, "AES");
+            
+            // Creamos un Cipher con el algoritmos que vamos a usar
+            Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
+            IvParameterSpec ivParam = new IvParameterSpec(Arrays.copyOfRange(fileContent, 0, 16)); // La IV está aquí
+            cipher.init(Cipher.DECRYPT_MODE, privateKey, ivParam);
+            byte[] decodedMessage = cipher.doFinal(Arrays.copyOfRange(fileContent, 16, fileContent.length));
+            ret = new String(decodedMessage);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return ret;
+    }
 }

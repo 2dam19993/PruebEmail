@@ -5,6 +5,8 @@
 */
 package com.journaldev.mail;
 
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.mail.MessagingException;
 
 /**
@@ -15,12 +17,18 @@ public class Main {
     public static void main(String[] args) {
         for(int i=0;i<1;i++){
             //public EmailThread(String receptor,String asunto, String mensaje) throws MontajeMailException, EnviarMailException{
-            try{
-                EmailThread emailT=new EmailThread("2dam19993@gmail.com","pruebas PSP","Que tal hoy?? PERCY!");
+            
+            EmailThread emailT;
+            try {
+                emailT = new EmailThread("2dam19993@gmail.com","pruebas PSP","Que tal hoy?? PERCY!");
                 emailT.start();
-            }catch(Exception e){
-                
+            } catch (MontajeMailException ex) {
+                Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
+            } catch (EnviarMailException ex) {
+                Logger.getLogger(Main.class.getName()).log(Level.SEVERE, null, ex);
             }
+                
+            
         }
     }
 }

@@ -133,7 +133,8 @@ public class EmailThread extends Thread{
         String ret = null;
         
         // Fichero leído
-        byte[] fileContent = fileReader("F:\\Clase 2DAM\\Cosas_print\\cuentaMail.dat");
+       // byte[] fileContent = fileReader("F:\\Clase 2DAM\\Cosas_print\\cuentaMail.dat");//prueba
+       byte[] fileContent = fileReader("src/java/com/journaldev/mail/cuentaMail.dat");
         KeySpec keySpec = null;
         SecretKeyFactory secretKeyFactory = null;
         try {
